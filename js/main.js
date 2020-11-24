@@ -13,6 +13,7 @@
     };
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
+
     //firebase.analytics();
 
     console.log('firebase:', firebase);
@@ -39,32 +40,45 @@ const userAvatarElem = document.querySelector('.user-avatar');
 const postsWrapper = document.querySelector('.posts');
 const buttonNewPost = document.querySelector('.button-new-post');
 const addPostElem = document.querySelector('.add-post');
+const loginForget = document.querySelector('.lorget-forget');
 
-
-const listUsers = [
-  {
-    id: '01',
-    email: 'maks@mail.com',
-    password: '12345',
-    displayName: 'MaksJS',
-    photo: 'https://get.pxhere.com/photo/man-person-people-hair-photography-male-guy-portrait-romance-fashion-hairstyle-beard-temple-photograph-emotion-portrait-photography-facial-hair-93882.jpg'
-  },
-  {
-    id:'02',
-    email: 'kate@mail.com',
-    password: '12345',
-    displayName: 'KateKillMaks'
-  }
-];
-
+const default_photo = userAvatarElem.src;
 const setUsers = {
   user: null, 
-  logIn(email, password, handler){
+
+  initUser(handler) {
+    firebase.auth().onAuthStateChanged(user => {
+      if(user) {
+        this.user = user;
+      }else {
+        this.user = null;
+      }
+      if(handler) {
+        handler();
+      } 
+    })
+  },
+    logIn(email, password, handler){
     if(!regExpValidEmail.test(email)) {
       alert('Email не валиден');
       return;     
     }
-    const user = this.getUser(email);
+
+    firebase.auth().signInWithEmailAndPassword(email, password)
+    .catch(err => {
+      const errCode = err.code;
+      const errMessage = err.message;
+      if(errCode === 'auth/wrong-password') {
+          console.log(errMessage);
+          alert('Неверный пароль')
+      } else if(errCode === 'auth/user-not-found') {
+          console.log(errMessage);
+          alert('Пользователь не найден')
+      }else {
+        alert(errMessage)
+      }
+    })
+    /* const user = this.getUser(email);
     if (user && user.password === password) {
       this.autorizedUser(user);
       if(handler) {
@@ -72,13 +86,11 @@ const setUsers = {
       } 
     } else {
       alert('Пользователь с такими данными не найден')
-    }
+    } */
   },
-  logOut(handler){
-    this.user = null;
-    if(handler) {
-      handler();
-    }
+  logOut(){
+    
+    firebase.auth().signOut();
   },
   signUp(email, password, handler){
     if(!regExpValidEmail.test(email)) {
@@ -91,7 +103,26 @@ const setUsers = {
       return;
     }  */
 
-    if (!this.getUser(email)){
+    firebase.auth().createUserWithEmailAndPassword(email, password)
+    .then(data => {
+      this.editUser(email.substring(0, email.indexOf('@')), null, handler)
+    })
+    .catch(err => {
+      const errCode = err.code;
+      const errMessage = err.message;
+      if(errCode === 'auth/weak-password') {
+          console.log(errMessage);
+          alert('Слабый пароль')
+      } else if(errCode === 'auth/email-already-in-use') {
+        console.log(errMessage);
+        alert('Этот email уже используется')
+      }else {
+        alert(errMessage)
+      }
+
+      console.log(errMessage);
+    })
+    /* if (!this.getUser(email)){
       const user = {email, password, displayName: email.substring(0, email.indexOf('@'))};
       listUsers.push(user);
       this.autorizedUser(user); 
@@ -100,17 +131,25 @@ const setUsers = {
       }
     } else {
       alert('Пользователь с таким Email уже зарегистрирован');
+    } */
+  },
+  editUser(displayName, photoURL, handler) {
+    const user = firebase.auth().currentUser;
+
+    if (displayName) {
+      if (photoURL) {
+        user.updateProfile({
+          displayName,
+          photoURL
+        }).then(handler)
+      } else {
+        user.updateProfile({
+          displayName
+        }).then(handler)
+      }
     }
   },
-  editUser(userName, userPhoto, handler) {
-    if (userName) {
-      this.user.displayName = userName;
-    }
-    if (userPhoto) {
-      this.user.photo = userPhoto;
-    }
-    handler();
-  },
+  /*
   getUser(email) {
     /* let user = null;
     for (let i = 0; i < listUsers.length; i++){
@@ -120,56 +159,53 @@ const setUsers = {
       }
     }
     return user; */
+    /* 
     return listUsers.find(item => item.email === email)
-  },
-  autorizedUser(user) {
-    this.user = user;
+      },
+      */
+    /*  autorizedUser(user) {
+        this.user = user;
+      } */
+  sendForget(email) {
+    firebase.auth().sendPasswordResetEmail(email)
+    .then(() => {
+    alert('Письмо отправлено')
+    })
+    .catch(err => {
+    console.log(err);
+    })
   }
-
 };
-
 const setPosts = {
-  allPosts: [
-    {
-      title: 'Заголовлок поста',
-      text: 'Далеко-далеко за словесными горами в стране гласных и согласных живут рыбные тексты. Языком что рот маленький реторический вершину текстов обеспечивает гор свой назад решила сбить маленькая дорогу жизни рукопись ему букв деревни предложения, ручеек залетают продолжил парадигматическая? Но языком сих пустился, запятой своего его снова решила меня вопроса моей своих пояс коварный, власти диких правилами напоивший они текстов ipsum первую подпоясал? Лучше, щеке подпоясал приставка большого курсивных на берегу своего? Злых, составитель агентство что вопроса ведущими о решила одна алфавит!',
-      tags:['свежее','новое','горячее','мое','случайность'],
-      author: {displayName: 'maks', photo: 'https://get.pxhere.com/photo/man-person-people-hair-photography-male-guy-portrait-romance-fashion-hairstyle-beard-temple-photograph-emotion-portrait-photography-facial-hair-93882.jpg'},
-      date: '11.11.2020, 20:54:00',
-      loke: 45,
-      comment: 12
-    },
-    {
-      title: 'Заголовлок поста2',
-      text: 'Далеко-далеко за словесными горами в стране гласных и согласных живут рыбные тексты. Языком что рот маленький реторический вершину текстов обеспечивает гор свой назад решила сбить маленькая дорогу жизни рукопись ему букв деревни предложения, ручеек залетают продолжил парадигматическая? Но языком сих пустился, запятой своего его снова решила меня вопроса моей своих пояс коварный, власти диких правилами напоивший они текстов ipsum первую подпоясал? Лучше, щеке подпоясал приставка большого курсивных на берегу своего? Злых, составитель агентство что вопроса ведущими о решила одна алфавит!',
-      tags:['свежее','новое','горячее','мое','случайность'],
-      author: {displayName: 'maks', photo: 'https://get.pxhere.com/photo/man-person-people-hair-photography-male-guy-portrait-romance-fashion-hairstyle-beard-temple-photograph-emotion-portrait-photography-facial-hair-93882.jpg'},
-      date: '10.11.2020, 20:54:00',
-      loke: 45,
-      comment: 12
-    }
-  ],
+  allPosts: [],
 
   addPost(title,text, tags, handler) {
     this.allPosts.unshift({
+      id: `postID${(+new Date()).toString(16)}-${user.uid}`,
       title, 
       text, 
       tags: tags.split(',').map(item => item.trim()), 
       author: {
         displayName: setUsers.user.displayName,
-        photo: setUsers.user.photo
+        photo: setUsers.user.photoURL
       }, 
       date: new Date().toLocaleString(),
       like: 0, 
       comments: 0,
     })
 
-    if(handler) {
+    firebase.database().ref('post').set(this.allPosts)
+    .then(() => this.getPosts(handler))
+    
+  },
+
+  getPosts(handler) {
+    firebase.database().ref('post').on('value', snapshot => {
+      this.allPosts = snapshot.val() || [];
       handler();
-    }
+    })
   }
 }
-
 const toggleAuthDom = () => {
   const user = setUsers.user;
 
@@ -177,7 +213,7 @@ const toggleAuthDom = () => {
     loginForm.style.display = 'none';
     userElem.style.display = '';
     userNameElem.textContent = user.displayName;
-    userAvatarElem.src = user.photo || userAvatarElem.src;
+    userAvatarElem.src = user.photoURL || default_photo;
     buttonNewPost.classList.add('visible');
   } else {
     loginForm.style.display = '';
@@ -191,9 +227,6 @@ const showAddPosts = () => {
   addPostElem.classList.add('visible');
   postsWrapper.classList.remove('visible');
 }
-
-
-
 const showAllPosts = () => {
   
 
@@ -255,9 +288,6 @@ const showAllPosts = () => {
   addPostElem.classList.remove('visible');
   postsWrapper.classList.add('visible');
 }
-
-
-
 const init = () => {
   loginForm.addEventListener('submit', event => {
     event.preventDefault();
@@ -272,14 +302,14 @@ const init = () => {
   loginSignup.addEventListener('click', event => {
     event.preventDefault();
     const emailValue = emailInput.value;
-    const passwordValue = passwordInput.passwordValue;
+    const passwordValue = passwordInput.value;
     setUsers.signUp(emailValue, passwordValue, toggleAuthDom);
     loginForm.reset();
   });
   
   exitElem.addEventListener('click', event => {
     event.preventDefault();
-    setUsers.logOut(toggleAuthDom);
+    setUsers.logOut();
   });
   editElem.addEventListener('click', event => {
     event.preventDefault();
@@ -328,10 +358,14 @@ const init = () => {
     addPostElem.reset();
 
   })
-  
-  showAllPosts();
-  toggleAuthDom();
-}
+  loginForget.addEventListener('click', event => {
+    event.preventDefault();
+    setUsers.sendForget(emailInput.value);
+    emailInput.value = '';
+  })
 
+  setUsers.initUser(toggleAuthDom);
+  setPosts.getPosts(showAllPosts);
+}
 document.addEventListener('DOMContentLoaded', init);
 
